@@ -46,7 +46,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-5">
           <p className="text-sm text-gray-500">Total Calls</p>
           <p className="text-3xl font-bold">{stats.total_calls}</p>
@@ -60,6 +60,20 @@ export default function Dashboard() {
           <p className="text-3xl font-bold">
             {stats.avg_sentiment_score != null ? stats.avg_sentiment_score.toFixed(2) : 'N/A'}
           </p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-sm text-gray-500">Avg Rating</p>
+          <p className="text-3xl font-bold">
+            {stats.avg_rating != null ? stats.avg_rating.toFixed(1) : 'N/A'}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-sm text-gray-500">Needs Review</p>
+          <p className="text-3xl font-bold text-yellow-600">{stats.unreviewed_count}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-sm text-gray-500">Flagged</p>
+          <p className="text-3xl font-bold text-red-600">{stats.flagged_count}</p>
         </div>
       </div>
 
@@ -76,6 +90,7 @@ export default function Dashboard() {
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Sentiment</th>
+                <th className="px-4 py-2">Review</th>
               </tr>
             </thead>
             <tbody>
@@ -90,6 +105,15 @@ export default function Dashboard() {
                     {c.overall_sentiment
                       ? <SentimentBadge sentiment={c.overall_sentiment} score={c.overall_score} />
                       : <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                      c.review_status === 'approved' ? 'bg-green-100 text-green-800' :
+                      c.review_status === 'flagged' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {c.review_status || 'unreviewed'}
+                    </span>
                   </td>
                 </tr>
               ))}
