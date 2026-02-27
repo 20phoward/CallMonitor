@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from config import STORAGE_DIR
-from database import Call, Transcript, TonalityResult
+from database import Call, Transcript, TonalityResult, CallScore
 from services.transcription import transcribe_audio
 from services.tonality import analyze_tonality
 
@@ -76,6 +76,23 @@ def process_call(call_id: int, db: Session):
             tone_labels=ton_result["tone_labels"],
         )
         db.add(tonality)
+
+        # --- Rubric scoring ---
+        rubric = ton_result.get("rubric_scores")
+        score_kwargs = {"call_id": call_id}
+        if rubric:
+            score_kwargs.update({
+                "empathy": rubric["empathy"]["score"],
+                "professionalism": rubric["professionalism"]["score"],
+                "resolution": rubric["resolution"]["score"],
+                "compliance": rubric["compliance"]["score"],
+                "overall_rating": round(sum(
+                    rubric[k]["score"] for k in ("empathy", "professionalism", "resolution", "compliance")
+                ) / 4, 2),
+                "category_details": {k: {"reasoning": v["reasoning"]} for k, v in rubric.items()},
+            })
+        call_score = CallScore(**score_kwargs)
+        db.add(call_score)
 
         call.status = "completed"
         db.commit()
