@@ -1,9 +1,14 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from database import get_db, Call, TonalityResult
-from models.schemas import CallSummary, CallDetail, CallStatusResponse, DashboardStats
+from database import get_db, Call, TonalityResult, CallScore, Review
+from models.schemas import (
+    CallSummary, CallDetail, CallStatusResponse, DashboardStats,
+    CallScoreResponse, ReviewRequest, ReviewResponse,
+)
 from config import STORAGE_DIR
 
 router = APIRouter(prefix="/api/calls", tags=["calls"])
@@ -97,3 +102,50 @@ def delete_call(call_id: int, db: Session = Depends(get_db)):
     db.delete(call)
     db.commit()
     return {"detail": "Call deleted"}
+
+
+@router.get("/{call_id}/scores", response_model=CallScoreResponse)
+def get_call_scores(call_id: int, db: Session = Depends(get_db)):
+    call = db.query(Call).filter(Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    if not call.score:
+        raise HTTPException(status_code=404, detail="Scores not available")
+    return call.score
+
+
+@router.get("/{call_id}/review", response_model=ReviewResponse)
+def get_call_review(call_id: int, db: Session = Depends(get_db)):
+    call = db.query(Call).filter(Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    if not call.review:
+        raise HTTPException(status_code=404, detail="No review found")
+    return call.review
+
+
+@router.post("/{call_id}/review", response_model=ReviewResponse)
+def submit_review(call_id: int, req: ReviewRequest, db: Session = Depends(get_db)):
+    call = db.query(Call).filter(Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+
+    review = db.query(Review).filter(Review.call_id == call_id).first()
+    if review:
+        review.status = req.status
+        review.score_overrides = req.score_overrides
+        review.notes = req.notes
+        review.reviewed_at = datetime.now(timezone.utc)
+    else:
+        review = Review(
+            call_id=call_id,
+            status=req.status,
+            score_overrides=req.score_overrides,
+            notes=req.notes,
+            reviewed_at=datetime.now(timezone.utc),
+        )
+        db.add(review)
+
+    db.commit()
+    db.refresh(review)
+    return review
