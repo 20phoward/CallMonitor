@@ -23,6 +23,28 @@ function formatDuration(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+function ReviewStatusBadge({ status }) {
+  const colors = {
+    unreviewed: 'bg-gray-100 text-gray-800',
+    approved: 'bg-green-100 text-green-800',
+    flagged: 'bg-red-100 text-red-800',
+  }
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[status] || 'bg-gray-100'}`}>
+      {status || 'unreviewed'}
+    </span>
+  )
+}
+
+function RatingBadge({ rating }) {
+  if (rating == null) return <span className="text-gray-400">-</span>
+  const color =
+    rating >= 8 ? 'text-green-600' :
+    rating >= 6 ? 'text-yellow-600' :
+    rating >= 4 ? 'text-orange-600' : 'text-red-600'
+  return <span className={`font-medium ${color}`}>{rating.toFixed(1)}</span>
+}
+
 export default function CallList() {
   const [calls, setCalls] = useState([])
   const [loading, setLoading] = useState(true)
@@ -64,6 +86,8 @@ export default function CallList() {
                 <th className="px-4 py-2">Source</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Sentiment</th>
+                <th className="px-4 py-2">Rating</th>
+                <th className="px-4 py-2">Review</th>
                 <th className="px-4 py-2"></th>
               </tr>
             </thead>
@@ -87,6 +111,8 @@ export default function CallList() {
                       </span>
                     ) : '-'}
                   </td>
+                  <td className="px-4 py-2"><RatingBadge rating={c.overall_rating} /></td>
+                  <td className="px-4 py-2"><ReviewStatusBadge status={c.review_status} /></td>
                   <td className="px-4 py-2">
                     <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700 text-xs">
                       Delete
