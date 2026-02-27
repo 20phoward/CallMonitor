@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.db
+.env
+storage/audio/*
+!storage/audio/.gitkeep
+node_modules/
+dist/
+.vite/
