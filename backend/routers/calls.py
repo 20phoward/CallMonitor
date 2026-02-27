@@ -33,6 +33,8 @@ def list_calls(db: Session = Depends(get_db)):
             source_type=c.source_type,
             overall_sentiment=sentiment,
             overall_score=score,
+            overall_rating=c.score.overall_rating if c.score else None,
+            review_status=c.review.status if c.review else "unreviewed",
         ))
     return results
 
@@ -42,6 +44,12 @@ def dashboard_stats(db: Session = Depends(get_db)):
     total = db.query(func.count(Call.id)).scalar()
     completed = db.query(func.count(Call.id)).filter(Call.status == "completed").scalar()
     avg_score = db.query(func.avg(TonalityResult.overall_score)).scalar()
+    avg_rating = db.query(func.avg(CallScore.overall_rating)).scalar()
+
+    approved = db.query(func.count(Review.id)).filter(Review.status == "approved").scalar()
+    flagged = db.query(func.count(Review.id)).filter(Review.status == "flagged").scalar()
+    reviewed_total = approved + flagged
+    unreviewed = completed - reviewed_total
 
     recent = db.query(Call).order_by(Call.date.desc()).limit(5).all()
     recent_summaries = []
@@ -57,12 +65,18 @@ def dashboard_stats(db: Session = Depends(get_db)):
             source_type=c.source_type,
             overall_sentiment=sentiment,
             overall_score=score,
+            overall_rating=c.score.overall_rating if c.score else None,
+            review_status=c.review.status if c.review else "unreviewed",
         ))
 
     return DashboardStats(
         total_calls=total,
         completed_calls=completed,
         avg_sentiment_score=round(avg_score, 3) if avg_score is not None else None,
+        avg_rating=round(avg_rating, 2) if avg_rating is not None else None,
+        unreviewed_count=max(unreviewed, 0),
+        approved_count=approved,
+        flagged_count=flagged,
         recent_calls=recent_summaries,
     )
 
