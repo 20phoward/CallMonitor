@@ -8,7 +8,7 @@ from config import ANTHROPIC_API_KEY
 logger = logging.getLogger(__name__)
 
 ANALYSIS_PROMPT = """\
-You are an expert call analyst. Analyze the following call transcript and provide a structured tonality/sentiment analysis.
+You are an expert call analyst specializing in healthcare and rehabilitation settings. Analyze the following call transcript and provide a structured tonality/sentiment analysis with quality scoring.
 
 <transcript>
 {transcript}
@@ -25,12 +25,64 @@ Respond with ONLY valid JSON (no markdown, no code fences) in this exact schema:
     {{"time": <seconds>, "description": "<what happened>", "emotion": "<emotion label>"}}
   ],
   "summary": "<2-3 sentence summary of the call>",
-  "tone_labels": ["<tone1>", "<tone2>"]
+  "tone_labels": ["<tone1>", "<tone2>"],
+  "rubric_scores": {{
+    "empathy": {{
+      "score": <float 0-10>,
+      "reasoning": "<1-2 sentences>"
+    }},
+    "professionalism": {{
+      "score": <float 0-10>,
+      "reasoning": "<1-2 sentences>"
+    }},
+    "resolution": {{
+      "score": <float 0-10>,
+      "reasoning": "<1-2 sentences>"
+    }},
+    "compliance": {{
+      "score": <float 0-10>,
+      "reasoning": "<1-2 sentences>"
+    }}
+  }}
 }}
 
 For sentiment_over_time, sample at the timestamps of the transcript segments provided.
 For tone_labels, pick from: professional, friendly, aggressive, frustrated, confused, satisfied, empathetic, neutral, anxious, confident.
+
+Rubric scoring guide (healthcare/rehab context, 0-10 scale):
+- **Empathy & Compassion**: Active listening, validating feelings, patience, emotional support, acknowledging patient concerns.
+- **Professionalism**: Courteous tone, clear communication, appropriate boundaries, composed demeanor.
+- **Resolution & Follow-through**: Were concerns addressed? Were next steps communicated? Was there a clear plan?
+- **Compliance & Safety**: Proper introduction, required disclosures, safety protocols, no red flags, HIPAA awareness.
+
+Score guide: 0-3 Poor, 4-5 Below expectations, 6-7 Meets expectations, 8-9 Exceeds expectations, 10 Exceptional.
 """
+
+
+def parse_tonality_response(raw: str) -> dict:
+    """Parse Claude's JSON response into a structured dict."""
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1]
+    if raw.endswith("```"):
+        raw = raw.rsplit("```", 1)[0]
+    raw = raw.strip()
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse Claude response: %s", raw[:500])
+        return None
+
+    return {
+        "overall_sentiment": data.get("overall_sentiment", "neutral"),
+        "overall_score": float(data.get("overall_score", 0)),
+        "sentiment_scores": data.get("sentiment_over_time", []),
+        "key_moments": data.get("key_moments", []),
+        "summary": data.get("summary", ""),
+        "tone_labels": data.get("tone_labels", []),
+        "rubric_scores": data.get("rubric_scores", None),
+    }
 
 
 def analyze_tonality(transcript_text: str, segments: list[dict]) -> dict:
@@ -61,28 +113,10 @@ def analyze_tonality(transcript_text: str, segments: list[dict]) -> dict:
     )
 
     raw = message.content[0].text.strip()
-
-    # Strip markdown code fences if present
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1]
-    if raw.endswith("```"):
-        raw = raw.rsplit("```", 1)[0]
-    raw = raw.strip()
-
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        logger.error("Failed to parse Claude response: %s", raw[:500])
+    result = parse_tonality_response(raw)
+    if result is None:
         return _placeholder_result(segments)
-
-    return {
-        "overall_sentiment": data.get("overall_sentiment", "neutral"),
-        "overall_score": float(data.get("overall_score", 0)),
-        "sentiment_scores": data.get("sentiment_over_time", []),
-        "key_moments": data.get("key_moments", []),
-        "summary": data.get("summary", ""),
-        "tone_labels": data.get("tone_labels", []),
-    }
+    return result
 
 
 def _placeholder_result(segments: list[dict]) -> dict:
