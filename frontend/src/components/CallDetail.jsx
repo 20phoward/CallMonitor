@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCallDetail, fetchCallStatus, deleteCall, audioUrl } from '../api/client'
 import TonalityChart from './TonalityChart'
+import ScoreCard from './ScoreCard'
+import ReviewPanel from './ReviewPanel'
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60)
@@ -154,6 +156,22 @@ export default function CallDetail() {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Quality Score */}
+      {call.score && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Quality Score</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ScoreCard score={call.score} review={call.review} />
+            <ReviewPanel
+              callId={call.id}
+              score={call.score}
+              review={call.review}
+              onReviewSubmitted={() => fetchCallDetail(id).then(setCall)}
+            />
+          </div>
         </div>
       )}
 
