@@ -1,9 +1,54 @@
 import axios from 'axios'
 
-const api = axios.create({
-  baseURL: '/api',
+const api = axios.create({ baseURL: '/api' })
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+      const refreshToken = localStorage.getItem('refresh_token')
+      if (refreshToken) {
+        try {
+          const resp = await axios.post('/api/auth/refresh', { refresh_token: refreshToken })
+          localStorage.setItem('access_token', resp.data.access_token)
+          localStorage.setItem('refresh_token', resp.data.refresh_token)
+          originalRequest.headers.Authorization = `Bearer ${resp.data.access_token}`
+          return api(originalRequest)
+        } catch {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          window.location.href = '/login'
+        }
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Auth
+export const login = (email, password) => api.post('/auth/login', { email, password })
+export const register = (data) => api.post('/auth/register', data)
+export const getMe = () => api.get('/users/me')
+
+// Teams
+export const fetchTeams = () => api.get('/teams')
+export const createTeam = (data) => api.post('/teams', data)
+
+// Users
+export const fetchUsers = () => api.get('/users')
+export const updateUser = (id, data) => api.put(`/users/${id}`, data)
+
+// Calls (existing, now auth-protected)
 export async function fetchCalls() {
   const { data } = await api.get('/calls')
   return data
@@ -52,6 +97,11 @@ export async function submitReview(id, review) {
   return data
 }
 
+// Audit log
+export const fetchAuditLog = (params) => api.get('/audit-log', { params })
+
 export function audioUrl(filename) {
   return `/audio/${filename}`
 }
+
+export default api
