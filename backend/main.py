@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from config import STORAGE_DIR
-from routers import calls, upload, webrtc, auth, users
+from routers import calls, upload, webrtc, auth, users, teams, audit
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -28,6 +28,8 @@ app.include_router(upload.router)
 app.include_router(webrtc.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(teams.router)
+app.include_router(audit.router)
 
 
 @app.on_event("startup")
