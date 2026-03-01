@@ -14,3 +14,8 @@ WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 
 ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".m4a", ".webm", ".ogg", ".flac"}
 MAX_UPLOAD_SIZE_MB = 500
+
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
+REFRESH_TOKEN_EXPIRE_DAYS = 7
