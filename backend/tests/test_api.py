@@ -1,8 +1,8 @@
 from database import Call, CallScore, Review
 
 
-def test_get_scores(client, db):
-    call = Call(title="Test", status="completed")
+def test_get_scores(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
     score = CallScore(
@@ -13,24 +13,24 @@ def test_get_scores(client, db):
     db.add(score)
     db.commit()
 
-    resp = client.get(f"/api/calls/{call.id}/scores")
+    resp = client.get(f"/api/calls/{call.id}/scores", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["empathy"] == 7.5
     assert data["overall_rating"] == 7.625
 
 
-def test_get_scores_not_found(client, db):
-    call = Call(title="Test", status="completed")
+def test_get_scores_not_found(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
 
-    resp = client.get(f"/api/calls/{call.id}/scores")
+    resp = client.get(f"/api/calls/{call.id}/scores", headers=admin_headers)
     assert resp.status_code == 404
 
 
-def test_submit_review(client, db):
-    call = Call(title="Test", status="completed")
+def test_submit_review(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
 
@@ -38,7 +38,7 @@ def test_submit_review(client, db):
         "status": "approved",
         "score_overrides": {"empathy": 8.0},
         "notes": "Good call",
-    })
+    }, headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "approved"
@@ -46,46 +46,46 @@ def test_submit_review(client, db):
     assert data["reviewed_at"] is not None
 
 
-def test_submit_review_updates_existing(client, db):
-    call = Call(title="Test", status="completed")
+def test_submit_review_updates_existing(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
 
-    client.post(f"/api/calls/{call.id}/review", json={"status": "approved"})
+    client.post(f"/api/calls/{call.id}/review", json={"status": "approved"}, headers=admin_headers)
     resp = client.post(f"/api/calls/{call.id}/review", json={
         "status": "flagged",
         "notes": "Actually needs follow up",
-    })
+    }, headers=admin_headers)
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "flagged"
     assert db.query(Review).filter(Review.call_id == call.id).count() == 1
 
 
-def test_get_review(client, db):
-    call = Call(title="Test", status="completed")
+def test_get_review(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
     review = Review(call_id=call.id, status="flagged", notes="Check this")
     db.add(review)
     db.commit()
 
-    resp = client.get(f"/api/calls/{call.id}/review")
+    resp = client.get(f"/api/calls/{call.id}/review", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json()["status"] == "flagged"
 
 
-def test_get_review_not_found(client, db):
-    call = Call(title="Test", status="completed")
+def test_get_review_not_found(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
 
-    resp = client.get(f"/api/calls/{call.id}/review")
+    resp = client.get(f"/api/calls/{call.id}/review", headers=admin_headers)
     assert resp.status_code == 404
 
 
-def test_list_calls_includes_rating_and_review(client, db):
-    call = Call(title="Test", status="completed")
+def test_list_calls_includes_rating_and_review(client, admin_headers, admin_user, db):
+    call = Call(title="Test", status="completed", uploaded_by=admin_user.id)
     db.add(call)
     db.commit()
     db.add(CallScore(call_id=call.id, empathy=7.0, professionalism=7.0,
@@ -93,16 +93,16 @@ def test_list_calls_includes_rating_and_review(client, db):
     db.add(Review(call_id=call.id, status="approved"))
     db.commit()
 
-    resp = client.get("/api/calls")
+    resp = client.get("/api/calls", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data[0]["overall_rating"] == 7.0
     assert data[0]["review_status"] == "approved"
 
 
-def test_dashboard_stats_includes_review_counts(client, db):
+def test_dashboard_stats_includes_review_counts(client, admin_headers, admin_user, db):
     for i in range(3):
-        call = Call(title=f"Call {i}", status="completed")
+        call = Call(title=f"Call {i}", status="completed", uploaded_by=admin_user.id)
         db.add(call)
         db.commit()
         db.add(CallScore(call_id=call.id, empathy=7.0, professionalism=7.0,
@@ -115,7 +115,7 @@ def test_dashboard_stats_includes_review_counts(client, db):
     db.add(Review(call_id=calls[1].id, status="flagged"))
     db.commit()
 
-    resp = client.get("/api/calls/stats")
+    resp = client.get("/api/calls/stats", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["avg_rating"] == 7.0
