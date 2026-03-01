@@ -3,6 +3,80 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+# --- Auth ---
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "worker"
+    team_id: Optional[int] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+# --- Users ---
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    role: str
+    team_id: Optional[int] = None
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    team_id: Optional[int] = None
+
+
+# --- Teams ---
+
+class TeamCreate(BaseModel):
+    name: str
+
+
+class TeamResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# --- Audit Log ---
+
+class AuditLogResponse(BaseModel):
+    id: int
+    user_id: int
+    user_name: Optional[str] = None
+    action: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[int] = None
+    details: Optional[dict] = None
+    ip_address: Optional[str] = None
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # --- Transcript ---
 
 class TranscriptSegment(BaseModel):
