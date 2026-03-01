@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Float, Text, DateTime, ForeignKey, JSON, create_engine,
+    Boolean, Column, Enum, Integer, String, Float, Text, DateTime, ForeignKey, JSON, create_engine,
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+import enum
 
 from config import DATABASE_URL
 
@@ -19,6 +20,68 @@ def get_db():
         db.close()
 
 
+class RoleEnum(str, enum.Enum):
+    worker = "worker"
+    supervisor = "supervisor"
+    admin = "admin"
+
+
+class AuditAction(str, enum.Enum):
+    login = "login"
+    logout = "logout"
+    view_call = "view_call"
+    view_transcript = "view_transcript"
+    upload_call = "upload_call"
+    delete_call = "delete_call"
+    submit_review = "submit_review"
+    update_review = "update_review"
+    create_user = "create_user"
+    update_role = "update_role"
+
+
+class Team(Base):
+    __tablename__ = "teams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    members = relationship("User", back_populates="team")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    role = Column(String, default="worker")
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    is_active = Column(Boolean, default=True)
+    password_changed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    team = relationship("Team", back_populates="members")
+    calls = relationship("Call", back_populates="uploader")
+    audit_logs = relationship("AuditLog", back_populates="user")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    action = Column(String, nullable=False)
+    resource_type = Column(String, nullable=True)
+    resource_id = Column(Integer, nullable=True)
+    details = Column(JSON, nullable=True)
+    ip_address = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="audit_logs")
+
+
 class Call(Base):
     __tablename__ = "calls"
 
@@ -30,11 +93,13 @@ class Call(Base):
     source_type = Column(String, default="upload")  # upload/webrtc
     audio_filename = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     transcript = relationship("Transcript", back_populates="call", uselist=False, cascade="all, delete-orphan")
     tonality = relationship("TonalityResult", back_populates="call", uselist=False, cascade="all, delete-orphan")
     score = relationship("CallScore", back_populates="call", uselist=False, cascade="all, delete-orphan")
     review = relationship("Review", back_populates="call", uselist=False, cascade="all, delete-orphan")
+    uploader = relationship("User", back_populates="calls")
 
 
 class Transcript(Base):
