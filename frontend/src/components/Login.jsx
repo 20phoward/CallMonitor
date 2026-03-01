@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { login, register, getMe } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -6,7 +7,13 @@ export default function Login() {
   const [isRegister, setIsRegister] = useState(false)
   const [form, setForm] = useState({ email: '', password: '', name: '' })
   const [error, setError] = useState('')
-  const { loginUser } = useAuth()
+  const { user, loginUser } = useAuth()
+  const navigate = useNavigate()
+
+  if (user) {
+    navigate('/', { replace: true })
+    return null
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -19,6 +26,7 @@ export default function Login() {
       localStorage.setItem('access_token', data.access_token)
       const meRes = await getMe()
       loginUser(meRes.data, data.access_token, data.refresh_token)
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong')
     }
