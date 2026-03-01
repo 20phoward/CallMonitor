@@ -17,13 +17,13 @@ A healthcare/rehab call monitoring platform that transcribes patient calls, anal
 - [x] Status polling during processing
 - [x] Supported formats: WAV, MP3, M4A, WebM, OGG, FLAC
 
-## Phase 2 - Call Rating & Review System
-- [ ] Define scoring rubric (empathy, professionalism, resolution, compliance)
-- [ ] Auto-generate call scores from tonality analysis
-- [ ] Worker review interface (approve/flag/annotate calls)
-- [ ] Supervisor dashboard with team-level metrics
-- [ ] Comment/annotation system on call segments
-- [ ] Flag critical moments for review
+## Phase 2 - Call Rating & Review System (IN PROGRESS — branch: phase2-rating-review)
+- [x] Define scoring rubric (empathy, professionalism, resolution, compliance)
+- [x] Auto-generate call scores from tonality analysis (Claude prompt extended)
+- [x] Supervisor review interface (approve/flag/override scores)
+- [x] Dashboard with review stats (avg rating, needs review, flagged counts)
+- [ ] Comment/annotation system on call segments (deferred)
+- [ ] Flag critical moments for review (deferred)
 
 ## Phase 3 - Authentication & Roles
 - [ ] User authentication (login/register)

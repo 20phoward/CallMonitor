@@ -48,6 +48,40 @@ class TonalityResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# --- Scores ---
+
+class CallScoreResponse(BaseModel):
+    id: int
+    call_id: int
+    empathy: Optional[float] = None
+    professionalism: Optional[float] = None
+    resolution: Optional[float] = None
+    compliance: Optional[float] = None
+    overall_rating: Optional[float] = None
+    category_details: Optional[dict] = None
+
+    model_config = {"from_attributes": True}
+
+
+# --- Reviews ---
+
+class ReviewRequest(BaseModel):
+    status: str  # approved / flagged
+    score_overrides: Optional[dict] = None
+    notes: Optional[str] = None
+
+
+class ReviewResponse(BaseModel):
+    id: int
+    call_id: int
+    status: str
+    score_overrides: Optional[dict] = None
+    notes: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
 # --- Call ---
 
 class CallCreate(BaseModel):
@@ -64,6 +98,8 @@ class CallSummary(BaseModel):
     source_type: str
     overall_sentiment: Optional[str] = None
     overall_score: Optional[float] = None
+    overall_rating: Optional[float] = None
+    review_status: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -79,6 +115,8 @@ class CallDetail(BaseModel):
     error_message: Optional[str] = None
     transcript: Optional[TranscriptResponse] = None
     tonality: Optional[TonalityResponse] = None
+    score: Optional[CallScoreResponse] = None
+    review: Optional[ReviewResponse] = None
 
     model_config = {"from_attributes": True}
 
@@ -96,3 +134,7 @@ class DashboardStats(BaseModel):
     completed_calls: int
     avg_sentiment_score: Optional[float] = None
     recent_calls: list[CallSummary]
+    avg_rating: Optional[float] = None
+    unreviewed_count: int = 0
+    approved_count: int = 0
+    flagged_count: int = 0

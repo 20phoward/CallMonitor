@@ -37,6 +37,21 @@ export async function deleteCall(id) {
   return data
 }
 
+export async function fetchCallScores(id) {
+  const { data } = await api.get(`/calls/${id}/scores`)
+  return data
+}
+
+export async function fetchCallReview(id) {
+  const { data } = await api.get(`/calls/${id}/review`)
+  return data
+}
+
+export async function submitReview(id, review) {
+  const { data } = await api.post(`/calls/${id}/review`, review)
+  return data
+}
+
 export function audioUrl(filename) {
   return `/audio/${filename}`
 }

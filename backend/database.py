@@ -33,6 +33,8 @@ class Call(Base):
 
     transcript = relationship("Transcript", back_populates="call", uselist=False, cascade="all, delete-orphan")
     tonality = relationship("TonalityResult", back_populates="call", uselist=False, cascade="all, delete-orphan")
+    score = relationship("CallScore", back_populates="call", uselist=False, cascade="all, delete-orphan")
+    review = relationship("Review", back_populates="call", uselist=False, cascade="all, delete-orphan")
 
 
 class Transcript(Base):
@@ -59,6 +61,34 @@ class TonalityResult(Base):
     tone_labels = Column(JSON, nullable=True)  # ["professional", "friendly", ...]
 
     call = relationship("Call", back_populates="tonality")
+
+
+class CallScore(Base):
+    __tablename__ = "call_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    call_id = Column(Integer, ForeignKey("calls.id", ondelete="CASCADE"), unique=True)
+    empathy = Column(Float, nullable=True)
+    professionalism = Column(Float, nullable=True)
+    resolution = Column(Float, nullable=True)
+    compliance = Column(Float, nullable=True)
+    overall_rating = Column(Float, nullable=True)
+    category_details = Column(JSON, nullable=True)
+
+    call = relationship("Call", back_populates="score")
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    call_id = Column(Integer, ForeignKey("calls.id", ondelete="CASCADE"), unique=True)
+    status = Column(String, default="unreviewed")  # unreviewed/approved/flagged
+    score_overrides = Column(JSON, nullable=True)
+    notes = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    call = relationship("Call", back_populates="review")
 
 
 def init_db():
