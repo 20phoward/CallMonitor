@@ -4,6 +4,7 @@ import { fetchCallDetail, fetchCallStatus, deleteCall, audioUrl } from '../api/c
 import TonalityChart from './TonalityChart'
 import ScoreCard from './ScoreCard'
 import ReviewPanel from './ReviewPanel'
+import { useAuth } from '../contexts/AuthContext'
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60)
@@ -17,6 +18,7 @@ export default function CallDetail() {
   const [call, setCall] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     let interval
@@ -163,14 +165,16 @@ export default function CallDetail() {
       {call.score && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-3">Quality Score</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`grid grid-cols-1 ${user?.role !== 'worker' ? 'md:grid-cols-2' : ''} gap-4`}>
             <ScoreCard score={call.score} review={call.review} />
-            <ReviewPanel
-              callId={call.id}
-              score={call.score}
-              review={call.review}
-              onReviewSubmitted={() => fetchCallDetail(id).then(setCall)}
-            />
+            {user?.role !== 'worker' && (
+              <ReviewPanel
+                callId={call.id}
+                score={call.score}
+                review={call.review}
+                onReviewSubmitted={() => fetchCallDetail(id).then(setCall)}
+              />
+            )}
           </div>
         </div>
       )}
