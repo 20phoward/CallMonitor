@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, Call, SessionLocal, User
 from models.schemas import TwilioTokenResponse
-from config import STORAGE_DIR, TWILIO_WEBHOOK_BASE_URL
+from config import STORAGE_DIR, TWILIO_WEBHOOK_BASE_URL, TWILIO_PHONE_NUMBER
 from dependencies import get_current_user
 from services.twilio_service import (
     generate_voice_token,
@@ -72,23 +72,31 @@ def _download_and_process(call_id: int, recording_url: str):
 async def voice_webhook(request: Request, db: Session = Depends(get_db)):
     """Twilio voice webhook — returns TwiML to dial the patient with recording."""
     params = dict(await request.form())
+    logger.info("Voice webhook params: %s", params)
     _validate_webhook(request, params)
 
     call_id = params.get("callId") or request.query_params.get("callId")
     call_sid = params.get("CallSid", "")
-    to_number = params.get("To", "")
 
+    # Always use the normalized E.164 phone from the DB (frontend may send raw digits)
+    to_number = ""
+    call = None
     if call_id:
         call = db.query(Call).filter(Call.id == int(call_id)).first()
         if call:
+            to_number = call.patient_phone or ""
             call.twilio_call_sid = call_sid
             db.commit()
+
+    if not to_number:
+        to_number = params.get("To", "")
 
     # Build TwiML response
     from twilio.twiml.voice_response import VoiceResponse
 
     response = VoiceResponse()
     dial = response.dial(
+        caller_id=TWILIO_PHONE_NUMBER,
         record="record-from-answer-dual",
         recording_status_callback=f"{TWILIO_WEBHOOK_BASE_URL}/api/twilio/recording?callId={call_id}",
         recording_status_callback_event="completed",
