@@ -113,9 +113,10 @@ TWILIO_WEBHOOK_BASE_URL=<public URL for webhooks, e.g. ngrok URL>
 - Phase 1 (core pipeline) complete
 - Phase 2 (rating/review) complete
 - Phase 3 (auth/roles) complete
-- Phase 4 (live calling via Twilio) complete — 71 backend tests passing
+- Phase 4 (live calling via Twilio) complete
+- Phase 5 (reporting & analytics) complete — 82 backend tests passing
 - See ROADMAP.md for upcoming phases
-- Next: Phase 5 (reporting & analytics)
+- Next: Phase 6 (production readiness)
 - Deferred: inbound calling, real-time transcription, live tonality monitoring
 
 ## When Making Changes

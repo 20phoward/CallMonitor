@@ -56,12 +56,14 @@ A healthcare/rehab call monitoring platform that transcribes patient calls, anal
 - [ ] Real-time transcription during calls (deferred)
 - [ ] Live tonality monitoring (deferred)
 
-## Phase 5 - Reporting & Analytics
-- [ ] Export call reports (PDF/CSV)
-- [ ] Trend analysis over time (per worker, per team)
-- [ ] Compliance reporting
-- [ ] Customizable date range filters
-- [ ] Performance benchmarking
+## Phase 5 - Reporting & Analytics (COMPLETE)
+- [x] Export call reports (PDF/CSV)
+- [x] Trend analysis over time (per worker, per team)
+- [x] Compliance reporting (score thresholds + review completion)
+- [x] Customizable date range filters (presets + manual date pickers)
+- [x] Performance benchmarking (team comparison + worker breakdown)
+- [x] Reports page with Recharts visualizations (trends line chart, team bar chart)
+- [x] 82 backend tests passing (11 new)
 
 ## Phase 6 - Production Readiness
 - [ ] Migrate from SQLite to PostgreSQL
