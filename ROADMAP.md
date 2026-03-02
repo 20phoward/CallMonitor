@@ -39,11 +39,22 @@ A healthcare/rehab call monitoring platform that transcribes patient calls, anal
 - [x] Workers cannot delete calls or submit reviews
 - [x] 52 backend tests passing
 
-## Phase 4 - Live Call Recording
-- [ ] Complete WebRTC live recording integration
-- [ ] Real-time transcription during calls
-- [ ] Live tonality monitoring
-- [ ] Call timer and controls
+## Phase 4 - Live Call Recording (COMPLETE)
+- [x] Twilio Voice SDK integration (replaced WebRTC scaffold)
+- [x] Outbound calling — workers dial patients from the app
+- [x] Browser mode (WebRTC softphone via Twilio Voice JS SDK)
+- [x] Phone mode (Twilio calls worker's phone, bridges to patient)
+- [x] Automatic server-side call recording via Twilio
+- [x] Recording download and pipeline integration (Whisper + Claude)
+- [x] CallDialer component with call timer and hang up controls
+- [x] Twilio webhook endpoints (voice, status, recording)
+- [x] E.164 phone number validation
+- [x] Webhook signature validation (X-Twilio-Signature)
+- [x] Call detail badges (direction, connection mode)
+- [x] 71 backend tests passing (19 new)
+- [ ] Inbound calling — patient calls worker (deferred)
+- [ ] Real-time transcription during calls (deferred)
+- [ ] Live tonality monitoring (deferred)
 
 ## Phase 5 - Reporting & Analytics
 - [ ] Export call reports (PDF/CSV)

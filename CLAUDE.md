@@ -6,7 +6,8 @@ Healthcare/rehab call monitoring app. Workers upload or record patient calls; th
 ## Tech Stack
 - **Backend:** Python 3 / FastAPI / SQLAlchemy / SQLite / Whisper / Anthropic Claude API
 - **Auth:** python-jose (JWT) / passlib + bcrypt (passwords)
-- **Frontend:** React 18 / Vite / Tailwind CSS / Recharts / Axios
+- **Telephony:** Twilio Voice SDK (calling + recording)
+- **Frontend:** React 18 / Vite / Tailwind CSS / Recharts / Axios / @twilio/voice-sdk
 - **Audio processing:** ffmpeg (convert to WAV 16kHz mono)
 
 ## Project Structure
@@ -19,9 +20,9 @@ call-monitor/
 │   ├── auth.py            # Password hashing, JWT utils, password validation
 │   ├── dependencies.py    # FastAPI deps (get_current_user, role guards, scoping)
 │   ├── models/schemas.py  # Pydantic request/response schemas
-│   ├── routers/           # API route handlers (auth, users, teams, audit, calls, upload)
-│   ├── services/          # Business logic (pipeline, transcription, tonality, audit)
-│   ├── tests/             # pytest tests (52 tests)
+│   ├── routers/           # API route handlers (auth, users, teams, audit, calls, upload, twilio_webhooks)
+│   ├── services/          # Business logic (pipeline, transcription, tonality, audit, twilio_service)
+│   ├── tests/             # pytest tests (71 tests)
 │   └── storage/audio/     # Uploaded audio files (UUID names)
 └── frontend/
     ├── src/
@@ -74,8 +75,10 @@ python3 -c "import secrets; print(f'SECRET_KEY={secrets.token_hex(32)}')" >> bac
 - **Data scoping:** workers see own calls, supervisors see team's, admins see all
 - **Audio served at:** `/audio/{filename}` (static files from storage dir)
 - **Processing is async:** Upload returns immediately; pipeline runs in background task
-- **Status flow:** pending -> processing -> completed | failed
+- **Status flow:** pending -> processing -> completed | failed (uploads); connecting -> in_progress -> processing -> completed | failed (Twilio calls)
 - **Tonality scores:** -1.0 (negative) to 1.0 (positive)
+- **Twilio calls:** Workers dial patients via POST `/api/calls/dial`; Twilio webhooks at `/api/twilio/*` handle call events and recording
+- **Call modes:** "browser" (Twilio Voice JS SDK / WebRTC) or "phone" (Twilio rings worker's phone)
 - **HIPAA:** password complexity (8+ chars, mixed case, number), 15min auto-logoff
 
 ## Environment Variables
@@ -85,6 +88,15 @@ SECRET_KEY=<required for JWT signing>
 WHISPER_MODEL=base          # tiny, base, small, medium, large
 DATABASE_URL=sqlite:///./calls.db
 UPLOAD_DIR=./storage/audio
+
+# Twilio (required for live calling)
+TWILIO_ACCOUNT_SID=<from Twilio console>
+TWILIO_AUTH_TOKEN=<from Twilio console>
+TWILIO_PHONE_NUMBER=<purchased Twilio number, E.164 format>
+TWILIO_TWIML_APP_SID=<TwiML App SID>
+TWILIO_API_KEY=<API Key SID>
+TWILIO_API_SECRET=<API Key Secret>
+TWILIO_WEBHOOK_BASE_URL=<public URL for webhooks, e.g. ngrok URL>
 ```
 
 ## Dependencies to Note
@@ -92,15 +104,19 @@ UPLOAD_DIR=./storage/audio
 - **Whisper** downloads model on first run (~140MB for base)
 - **bcrypt** pinned to 4.0.1 (passlib incompatible with 5.x)
 - **setuptools** pinned to 75.8.2 (Whisper needs pkg_resources)
+- **twilio** SDK for telephony (calling, recording, webhooks)
+- **@twilio/voice-sdk** for browser-based calling (WebRTC softphone)
 - Frontend proxies `/api` and `/audio` to `localhost:8000` in dev
+- **ngrok** needed in dev for Twilio webhooks (exposes localhost to internet)
 
 ## Current Status
 - Phase 1 (core pipeline) complete
 - Phase 2 (rating/review) complete
-- Phase 3 (auth/roles) complete — 52 backend tests passing
+- Phase 3 (auth/roles) complete
+- Phase 4 (live calling via Twilio) complete — 71 backend tests passing
 - See ROADMAP.md for upcoming phases
-- Next: Phase 4 (live recording)
-- WebRTC recording is partially scaffolded but not functional
+- Next: Phase 5 (reporting & analytics)
+- Deferred: inbound calling, real-time transcription, live tonality monitoring
 
 ## When Making Changes
 - Backend schemas live in `models/schemas.py` — update when adding DB fields
@@ -111,3 +127,6 @@ UPLOAD_DIR=./storage/audio
 - Frontend API calls go through `api/client.js` — don't use raw axios in components
 - Tailwind classes for styling — no separate CSS files per component
 - After schema changes, delete `calls.db` to recreate (no migration tool yet)
+- Twilio webhooks go in `routers/twilio_webhooks.py` — use form data, not JSON; validate X-Twilio-Signature
+- Twilio service logic in `services/twilio_service.py` — token generation, phone validation, recording download
+- Phone numbers must be E.164 format (+15551234567) — use `validate_e164_phone()`
