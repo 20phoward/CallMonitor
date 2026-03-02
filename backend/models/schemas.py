@@ -236,3 +236,74 @@ class DashboardStats(BaseModel):
     unreviewed_count: int = 0
     approved_count: int = 0
     flagged_count: int = 0
+
+
+# --- Reports ---
+
+class TrendBucket(BaseModel):
+    start_date: str
+    end_date: str
+    call_count: int = 0
+    avg_sentiment: Optional[float] = None
+    avg_rating: Optional[float] = None
+    avg_empathy: Optional[float] = None
+    avg_professionalism: Optional[float] = None
+    avg_resolution: Optional[float] = None
+    avg_compliance: Optional[float] = None
+    flagged_count: int = 0
+
+
+class WorkerTrend(BaseModel):
+    worker_id: int
+    worker_name: str
+    buckets: list[TrendBucket]
+
+
+class TrendsResponse(BaseModel):
+    period: str
+    buckets: list[TrendBucket]
+    workers: Optional[list[WorkerTrend]] = None
+
+
+class TeamStats(BaseModel):
+    team_id: int
+    team_name: str
+    call_count: int = 0
+    avg_sentiment: Optional[float] = None
+    avg_rating: Optional[float] = None
+    flagged_pct: float = 0.0
+    approved_pct: float = 0.0
+    top_worker: Optional[str] = None
+    lowest_scorer: Optional[str] = None
+
+
+class TeamComparisonResponse(BaseModel):
+    teams: list[TeamStats]
+
+
+class FailingWorker(BaseModel):
+    worker_id: int
+    name: str
+    avg_score: float
+    calls_below: int
+
+
+class ScoreCompliance(BaseModel):
+    threshold: float
+    total_calls: int
+    passing_calls: int
+    passing_pct: float
+    failing_workers: list[FailingWorker]
+
+
+class ReviewCompletion(BaseModel):
+    total_completed_calls: int
+    reviewed_count: int
+    review_pct: float
+    avg_days_to_review: Optional[float] = None
+    unreviewed_backlog: int
+
+
+class ComplianceResponse(BaseModel):
+    score_compliance: ScoreCompliance
+    review_completion: ReviewCompletion
