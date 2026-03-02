@@ -77,6 +77,25 @@ class AuditLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# --- Twilio / Dialing ---
+
+class DialRequest(BaseModel):
+    patient_phone: str
+    mode: str = "browser"  # "browser" or "phone"
+    worker_phone: Optional[str] = None  # Required when mode="phone"
+    title: str = "Phone Call"
+
+
+class DialResponse(BaseModel):
+    call_id: int
+    status: str
+
+
+class TwilioTokenResponse(BaseModel):
+    token: str
+    identity: str
+
+
 # --- Transcript ---
 
 class TranscriptSegment(BaseModel):
@@ -174,6 +193,8 @@ class CallSummary(BaseModel):
     overall_score: Optional[float] = None
     overall_rating: Optional[float] = None
     review_status: Optional[str] = None
+    call_direction: Optional[str] = None
+    connection_mode: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -187,6 +208,9 @@ class CallDetail(BaseModel):
     source_type: str
     audio_filename: Optional[str] = None
     error_message: Optional[str] = None
+    call_direction: Optional[str] = None
+    connection_mode: Optional[str] = None
+    patient_phone: Optional[str] = None
     transcript: Optional[TranscriptResponse] = None
     tonality: Optional[TonalityResponse] = None
     score: Optional[CallScoreResponse] = None

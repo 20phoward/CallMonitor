@@ -37,6 +37,8 @@ class AuditAction(str, enum.Enum):
     update_review = "update_review"
     create_user = "create_user"
     update_role = "update_role"
+    dial_call = "dial_call"
+    recording_received = "recording_received"
 
 
 class Team(Base):
@@ -89,11 +91,15 @@ class Call(Base):
     title = Column(String, nullable=False)
     date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     duration = Column(Float, nullable=True)  # seconds
-    status = Column(String, default="pending")  # pending/processing/completed/failed
-    source_type = Column(String, default="upload")  # upload/webrtc
+    status = Column(String, default="pending")  # pending/connecting/in_progress/processing/completed/failed
+    source_type = Column(String, default="upload")  # upload/twilio
     audio_filename = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    twilio_call_sid = Column(String, nullable=True)
+    call_direction = Column(String, nullable=True)  # outbound/inbound
+    patient_phone = Column(String, nullable=True)
+    connection_mode = Column(String, nullable=True)  # browser/phone
 
     transcript = relationship("Transcript", back_populates="call", uselist=False, cascade="all, delete-orphan")
     tonality = relationship("TonalityResult", back_populates="call", uselist=False, cascade="all, delete-orphan")
