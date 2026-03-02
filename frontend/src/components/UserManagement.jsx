@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchUsers, register, fetchTeams, updateUser } from '../api/client'
+import { fetchUsers, register, fetchTeams, updateUser, deleteUser } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function UserManagement() {
@@ -47,10 +47,34 @@ export default function UserManagement() {
     }
   }
 
+  const handleTeamChange = async (userId, teamId) => {
+    try {
+      await updateUser(userId, { team_id: teamId || null })
+      loadData()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update team')
+    }
+  }
+
+  const handleDelete = async (userId, userName) => {
+    if (!confirm(`Remove ${userName}? They will no longer be able to log in.`)) return
+    try {
+      await deleteUser(userId)
+      loadData()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to remove user')
+    }
+  }
+
   const roleColor = {
     admin: 'text-purple-600 bg-purple-50',
     supervisor: 'text-blue-600 bg-blue-50',
     worker: 'text-green-600 bg-green-50',
+  }
+
+  const teamName = (teamId) => {
+    const t = teams.find(t => t.id === teamId)
+    return t ? t.name : ''
   }
 
   if (loading) return <div className="text-center py-8">Loading...</div>
@@ -95,7 +119,8 @@ export default function UserManagement() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -116,7 +141,23 @@ export default function UserManagement() {
                     </select>
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{new Date(u.created_at).toLocaleDateString()}</td>
+                <td className="px-6 py-4">
+                  {u.id === currentUser?.id ? (
+                    <span className="text-sm text-gray-500">{teamName(u.team_id) || '—'}</span>
+                  ) : (
+                    <select value={u.team_id || ''} onChange={(e) => handleTeamChange(u.id, e.target.value ? parseInt(e.target.value) : null)} className="text-sm border border-gray-200 rounded px-2 py-1 cursor-pointer">
+                      <option value="">No Team</option>
+                      {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  {u.id !== currentUser?.id && (
+                    <button onClick={() => handleDelete(u.id, u.name)} className="text-red-600 hover:text-red-800 text-sm">
+                      Remove
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

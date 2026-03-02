@@ -107,6 +107,7 @@ def analyze_tonality(transcript_text: str, segments: list[dict]) -> dict:
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=2048,
+        temperature=0,
         messages=[
             {"role": "user", "content": ANALYSIS_PROMPT.format(transcript=formatted_transcript)},
         ],

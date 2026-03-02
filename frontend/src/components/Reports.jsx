@@ -122,11 +122,11 @@ export default function Reports() {
       </div>
 
       {/* Trends Chart */}
-      {trends && trends.buckets.length > 0 && (
+      {trends && trends.buckets.some(b => b.call_count > 0) && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Performance Trends</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trends.buckets}>
+            <LineChart data={trends.buckets.filter(b => b.call_count > 0)}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="start_date" tick={{ fontSize: 11 }}
                 tickFormatter={v => v.slice(5)} />
@@ -135,31 +135,98 @@ export default function Reports() {
               <Tooltip />
               <Legend />
               <Line yAxisId="rating" type="monotone" dataKey="avg_rating"
-                stroke="#6366f1" strokeWidth={2} name="Avg Rating" dot={false} />
+                stroke="#6366f1" strokeWidth={2} name="Avg Rating" dot />
               <Line yAxisId="sentiment" type="monotone" dataKey="avg_sentiment"
-                stroke="#10b981" strokeWidth={2} name="Avg Sentiment" dot={false} />
+                stroke="#10b981" strokeWidth={2} name="Avg Sentiment" dot />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Team Comparison */}
-      {teamData && teamData.teams.length > 0 && user.role !== 'worker' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Team Comparison</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={teamData.teams}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="team_name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="avg_rating" fill="#6366f1" name="Avg Rating" />
-              <Bar dataKey="call_count" fill="#a5b4fc" name="Call Count" />
-              <Bar dataKey="flagged_pct" fill="#ef4444" name="Flagged %" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Team/Worker Comparison Charts */}
+      {teamData && user.role === 'admin' && teamData.teams.length > 0 && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Avg Rating by Team</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={teamData.teams}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="team_name" />
+                <YAxis domain={[0, 10]} />
+                <Tooltip />
+                <Bar dataKey="avg_rating" fill="#6366f1" name="Avg Rating" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4">Call Volume by Team</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={teamData.teams}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="team_name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="call_count" fill="#a5b4fc" name="Call Count" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4">Flagged Calls by Team</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={teamData.teams}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="team_name" />
+                  <YAxis domain={[0, 100]} unit="%" />
+                  <Tooltip />
+                  <Bar dataKey="flagged_pct" fill="#ef4444" name="Flagged %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
+      {teamData && user.role === 'supervisor' && teamData.workers && teamData.workers.length > 0 && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Avg Rating by Worker</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={teamData.workers}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="worker_name" />
+                <YAxis domain={[0, 10]} />
+                <Tooltip />
+                <Bar dataKey="avg_rating" fill="#6366f1" name="Avg Rating" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4">Call Volume by Worker</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={teamData.workers}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="worker_name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="call_count" fill="#a5b4fc" name="Call Count" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4">Flagged Calls by Worker</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={teamData.workers}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="worker_name" />
+                  <YAxis domain={[0, 100]} unit="%" />
+                  <Tooltip />
+                  <Bar dataKey="flagged_pct" fill="#ef4444" name="Flagged %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Compliance Summary */}

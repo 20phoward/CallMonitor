@@ -18,7 +18,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    return db.query(User).order_by(User.created_at).all()
+    return db.query(User).filter(User.is_active == True).order_by(User.created_at).all()
 
 
 @router.put("/{user_id}", response_model=UserResponse)
@@ -38,3 +38,19 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    user.is_active = False
+    db.commit()
+    return {"detail": "User deactivated"}

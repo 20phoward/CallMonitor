@@ -111,7 +111,7 @@ def compute_trends(db: Session, scope_filter, current_user, period="weekly",
 
 def compute_team_comparison(db: Session, scope_filter, current_user,
                             start_date=None, end_date=None):
-    """Compare teams on key metrics."""
+    """Compare teams (admin) or workers within team (supervisor)."""
     if not end_date:
         end_date = datetime.now(timezone.utc).date()
     if not start_date:
@@ -119,6 +119,44 @@ def compute_team_comparison(db: Session, scope_filter, current_user,
 
     call_ids, _ = get_scoped_call_ids(db, scope_filter, start_date, end_date)
 
+    # Supervisors: worker breakdown within their team
+    if current_user.role == "supervisor":
+        team_user_ids = [
+            u.id for u in db.query(User).filter(User.team_id == current_user.team_id).all()
+        ] if current_user.team_id else []
+
+        workers = []
+        for uid in team_user_ids:
+            worker_call_ids = [
+                c.id for c in db.query(Call).filter(
+                    Call.id.in_(call_ids), Call.uploaded_by == uid
+                ).all()
+            ]
+            if not worker_call_ids:
+                continue
+
+            user = db.query(User).filter(User.id == uid).first()
+            call_count = len(worker_call_ids)
+            avg_sentiment = db.query(func.avg(TonalityResult.overall_score)).filter(
+                TonalityResult.call_id.in_(worker_call_ids)).scalar()
+            avg_rating = db.query(func.avg(CallScore.overall_rating)).filter(
+                CallScore.call_id.in_(worker_call_ids)).scalar()
+            flagged = db.query(func.count(Review.id)).filter(
+                Review.call_id.in_(worker_call_ids), Review.status == "flagged").scalar()
+
+            workers.append({
+                "worker_id": uid,
+                "worker_name": user.name,
+                "call_count": call_count,
+                "avg_sentiment": _round_or_none(avg_sentiment, 3),
+                "avg_rating": _round_or_none(avg_rating),
+                "flagged_pct": round(flagged / call_count * 100, 1) if call_count else 0.0,
+                "approved_pct": 0.0,
+            })
+
+        return {"teams": [], "workers": workers}
+
+    # Admins: team-level comparison
     teams = db.query(Team).all()
     result = []
 

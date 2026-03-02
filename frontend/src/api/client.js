@@ -47,6 +47,7 @@ export const createTeam = (data) => api.post('/teams', data)
 // Users
 export const fetchUsers = () => api.get('/users')
 export const updateUser = (id, data) => api.put(`/users/${id}`, data)
+export const deleteUser = (id) => api.delete(`/users/${id}`)
 
 // Calls (existing, now auth-protected)
 export async function fetchCalls() {
@@ -101,8 +102,8 @@ export async function submitReview(id, review) {
 export const fetchAuditLog = (params) => api.get('/audit-log', { params })
 
 // Twilio calling
-export async function dialCall({ patient_phone, mode, worker_phone, title }) {
-  const { data } = await api.post('/calls/dial', { patient_phone, mode, worker_phone, title })
+export async function dialCall({ patient_phone, mode, worker_phone, title, patient_name }) {
+  const { data } = await api.post('/calls/dial', { patient_phone, mode, worker_phone, title, patient_name })
   return data
 }
 
