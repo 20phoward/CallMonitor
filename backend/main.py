@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from config import STORAGE_DIR
-from routers import calls, upload, webrtc, auth, users, teams, audit
+from routers import calls, upload, twilio_webhooks, auth, users, teams, audit
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -25,7 +25,7 @@ app.mount("/audio", StaticFiles(directory=str(STORAGE_DIR)), name="audio")
 
 app.include_router(calls.router)
 app.include_router(upload.router)
-app.include_router(webrtc.router)
+app.include_router(twilio_webhooks.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(teams.router)

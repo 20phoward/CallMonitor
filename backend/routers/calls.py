@@ -4,14 +4,20 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+import logging
+
 from database import get_db, Call, TonalityResult, CallScore, Review, User
 from models.schemas import (
     CallSummary, CallDetail, CallStatusResponse, DashboardStats,
     CallScoreResponse, ReviewRequest, ReviewResponse,
+    DialRequest, DialResponse,
 )
-from config import STORAGE_DIR
+from config import STORAGE_DIR, TWILIO_PHONE_NUMBER, TWILIO_WEBHOOK_BASE_URL
 from dependencies import get_current_user, get_call_scope_filter, require_supervisor_or_admin
 from services.audit import log_audit
+from services.twilio_service import get_twilio_client, validate_e164_phone
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/calls", tags=["calls"])
 
@@ -55,6 +61,71 @@ def list_calls(
             review_status=c.review.status if c.review else "unreviewed",
         ))
     return results
+
+
+@router.post("/dial", response_model=DialResponse)
+def dial_call(
+    req: DialRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Initiate an outbound call via Twilio."""
+    # Validate patient phone
+    try:
+        patient_phone = validate_e164_phone(req.patient_phone)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Phone mode requires worker_phone
+    if req.mode == "phone" and not req.worker_phone:
+        raise HTTPException(status_code=400, detail="worker_phone is required for phone mode")
+
+    # Validate worker_phone if provided
+    worker_phone = None
+    if req.mode == "phone" and req.worker_phone:
+        try:
+            worker_phone = validate_e164_phone(req.worker_phone)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # Create Call record
+    call = Call(
+        title=req.title,
+        source_type="twilio",
+        status="connecting",
+        uploaded_by=current_user.id,
+        call_direction="outbound",
+        patient_phone=patient_phone,
+        connection_mode=req.mode,
+    )
+    db.add(call)
+    db.commit()
+    db.refresh(call)
+
+    log_audit(db, current_user, "dial_call", request, "call", call.id)
+
+    # For phone mode, initiate the Twilio call
+    if req.mode == "phone":
+        try:
+            twilio_client = get_twilio_client()
+            twilio_call = twilio_client.calls.create(
+                to=worker_phone,
+                from_=TWILIO_PHONE_NUMBER,
+                url=f"{TWILIO_WEBHOOK_BASE_URL}/api/twilio/voice?callId={call.id}",
+                status_callback=f"{TWILIO_WEBHOOK_BASE_URL}/api/twilio/status?callId={call.id}",
+                status_callback_event=["initiated", "ringing", "answered", "completed"],
+            )
+            call.twilio_call_sid = twilio_call.sid
+            db.commit()
+        except Exception as e:
+            logger.exception("Twilio call creation failed for call %d", call.id)
+            call.status = "failed"
+            call.error_message = str(e)
+            db.commit()
+            raise HTTPException(status_code=500, detail="Failed to initiate Twilio call")
+
+    return DialResponse(call_id=call.id, status=call.status)
 
 
 @router.get("/stats", response_model=DashboardStats)
