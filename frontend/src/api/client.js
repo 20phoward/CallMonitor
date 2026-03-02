@@ -100,6 +100,17 @@ export async function submitReview(id, review) {
 // Audit log
 export const fetchAuditLog = (params) => api.get('/audit-log', { params })
 
+// Twilio calling
+export async function dialCall({ patient_phone, mode, worker_phone, title }) {
+  const { data } = await api.post('/calls/dial', { patient_phone, mode, worker_phone, title })
+  return data
+}
+
+export async function getTwilioToken() {
+  const { data } = await api.post('/twilio/token')
+  return data
+}
+
 export function audioUrl(filename) {
   return `/audio/${filename}`
 }

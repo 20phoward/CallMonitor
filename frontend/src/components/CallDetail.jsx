@@ -28,7 +28,7 @@ export default function CallDetail() {
         setCall(data)
         setLoading(false)
         // Poll while processing
-        if (data.status === 'pending' || data.status === 'processing') {
+        if (['pending', 'processing', 'connecting', 'in_progress'].includes(data.status)) {
           interval = setInterval(async () => {
             const status = await fetchCallStatus(id)
             if (status.status !== data.status) {
@@ -61,6 +61,8 @@ export default function CallDetail() {
 
   const statusColors = {
     pending: 'text-yellow-600',
+    connecting: 'text-orange-600',
+    in_progress: 'text-blue-600',
     processing: 'text-blue-600',
     completed: 'text-green-600',
     failed: 'text-red-600',
@@ -75,6 +77,19 @@ export default function CallDetail() {
             {new Date(call.date).toLocaleString()} &middot;{' '}
             <span className={statusColors[call.status]}>{call.status}</span>
             {call.duration && ` \u00b7 ${formatTime(call.duration)}`}
+            {call.source_type === 'twilio' && (
+              <>
+                {' · '}
+                <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs">
+                  {call.call_direction || 'call'}
+                </span>
+                {call.connection_mode && (
+                  <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs ml-1">
+                    {call.connection_mode}
+                  </span>
+                )}
+              </>
+            )}
           </p>
         </div>
         <button onClick={handleDelete} className="text-red-500 hover:text-red-700 text-sm border border-red-300 px-3 py-1 rounded">
@@ -88,7 +103,7 @@ export default function CallDetail() {
         </div>
       )}
 
-      {(call.status === 'pending' || call.status === 'processing') && (
+      {['pending', 'processing', 'connecting', 'in_progress'].includes(call.status) && (
         <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded mb-6 flex items-center gap-3">
           <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
