@@ -198,16 +198,31 @@ export default function CallDetail() {
       {call.transcript && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-3">Transcript</h2>
-          <div className="bg-white rounded-lg shadow p-4 max-h-96 overflow-y-auto space-y-2">
+          <div className="bg-white rounded-lg shadow p-4 max-h-96 overflow-y-auto space-y-3">
             {call.transcript.segments?.length > 0 ? (
-              call.transcript.segments.map((seg, i) => (
-                <div key={i} className="flex gap-3 text-sm">
-                  <span className="font-mono text-gray-400 whitespace-nowrap text-xs mt-0.5">
-                    {formatTime(seg.start)}
-                  </span>
-                  <p>{seg.text}</p>
-                </div>
-              ))
+              call.transcript.segments.map((seg, i) => {
+                const prevSpeaker = i > 0 ? call.transcript.segments[i - 1].speaker : null
+                const showSpeaker = seg.speaker && seg.speaker !== prevSpeaker
+                const firstSpeaker = call.transcript.segments.find(s => s.speaker)?.speaker
+                const isFirstSpeaker = seg.speaker === firstSpeaker
+                return (
+                  <div key={i} className="flex gap-3 text-sm">
+                    <span className="font-mono text-gray-400 whitespace-nowrap text-xs mt-0.5">
+                      {formatTime(seg.start)}
+                    </span>
+                    <div>
+                      {showSpeaker && (
+                        <span className={`text-xs font-semibold mr-1 ${
+                          isFirstSpeaker ? 'text-indigo-600' : 'text-emerald-600'
+                        }`}>
+                          {seg.speaker}:
+                        </span>
+                      )}
+                      <span>{seg.text}</span>
+                    </div>
+                  </div>
+                )
+              })
             ) : (
               <p className="text-sm whitespace-pre-wrap">{call.transcript.full_text}</p>
             )}

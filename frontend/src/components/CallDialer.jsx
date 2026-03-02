@@ -14,6 +14,7 @@ export default function CallDialer() {
   const [patientPhone, setPatientPhone] = useState('')
   const [workerPhone, setWorkerPhone] = useState('')
   const [title, setTitle] = useState('')
+  const [patientName, setPatientName] = useState('')
   const [mode, setMode] = useState('browser')
   const [callState, setCallState] = useState('idle') // idle, connecting, active, ended
   const [callId, setCallId] = useState(null)
@@ -79,6 +80,7 @@ export default function CallDialer() {
         mode,
         worker_phone: mode === 'phone' ? workerPhone : undefined,
         title: title || `Call to ${patientPhone}`,
+        patient_name: patientName || undefined,
       })
       setCallId(data.call_id)
 
@@ -163,6 +165,17 @@ export default function CallDialer() {
               value={patientPhone}
               onChange={(e) => setPatientPhone(e.target.value)}
               placeholder="+15551234567"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Patient Name</label>
+            <input
+              type="text"
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+              placeholder="e.g. Lionel"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
@@ -269,6 +282,7 @@ export default function CallDialer() {
               onClick={() => {
                 setCallState('idle')
                 setPatientPhone('')
+                setPatientName('')
                 setWorkerPhone('')
                 setTitle('')
                 setTimer(0)
