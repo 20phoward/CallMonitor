@@ -115,4 +115,30 @@ export function audioUrl(filename) {
   return `/audio/${filename}`
 }
 
+// Reports
+export async function fetchTrends(params = {}) {
+  const { data } = await api.get('/reports/trends', { params })
+  return data
+}
+
+export async function fetchTeamComparison(params = {}) {
+  const { data } = await api.get('/reports/team-comparison', { params })
+  return data
+}
+
+export async function fetchCompliance(params = {}) {
+  const { data } = await api.get('/reports/compliance', { params })
+  return data
+}
+
+export function exportCsvUrl(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  return `/api/reports/export/csv?${query}`
+}
+
+export function exportPdfUrl(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  return `/api/reports/export/pdf?${query}`
+}
+
 export default api

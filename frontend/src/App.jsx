@@ -11,6 +11,7 @@ import CallDialer from './components/CallDialer'
 import UserManagement from './components/UserManagement'
 import TeamManagement from './components/TeamManagement'
 import AuditLog from './components/AuditLog'
+import Reports from './components/Reports'
 
 function Navbar() {
   const { user, logout } = useAuth()
@@ -39,6 +40,7 @@ function Navbar() {
             <Link to="/calls" className="hover:text-indigo-200">Calls</Link>
             <Link to="/upload" className="hover:text-indigo-200">Upload</Link>
             <Link to="/call" className="hover:text-indigo-200">Call</Link>
+            <Link to="/reports" className="hover:text-indigo-200">Reports</Link>
             {user.role === 'admin' && (
               <>
                 <Link to="/users" className="hover:text-indigo-200">Users</Link>
@@ -76,6 +78,7 @@ export default function App() {
           <Route path="/calls/:id" element={<ProtectedRoute><CallDetail /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><AudioUpload /></ProtectedRoute>} />
           <Route path="/call" element={<ProtectedRoute><CallDialer /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute roles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute roles={['admin']}><TeamManagement /></ProtectedRoute>} />
           <Route path="/audit-log" element={<ProtectedRoute roles={['admin']}><AuditLog /></ProtectedRoute>} />
