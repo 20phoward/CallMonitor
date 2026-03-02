@@ -59,6 +59,8 @@ def list_calls(
             overall_score=score,
             overall_rating=c.score.overall_rating if c.score else None,
             review_status=c.review.status if c.review else "unreviewed",
+            call_direction=c.call_direction,
+            connection_mode=c.connection_mode,
         ))
     return results
 
@@ -174,6 +176,8 @@ def dashboard_stats(
             overall_sentiment=sentiment, overall_score=score,
             overall_rating=c.score.overall_rating if c.score else None,
             review_status=c.review.status if c.review else "unreviewed",
+            call_direction=c.call_direction,
+            connection_mode=c.connection_mode,
         ))
 
     return DashboardStats(
