@@ -53,3 +53,39 @@ def transcribe_audio(audio_path: Path) -> dict:
         "segments": segments,
         "duration": duration,
     }
+
+
+def merge_speaker_segments(
+    worker_segments: list[dict],
+    patient_segments: list[dict],
+    worker_name: str,
+    patient_name: str,
+) -> list[dict]:
+    """Merge two lists of transcript segments with speaker labels, sorted by start time.
+
+    Args:
+        worker_segments: list of {start, end, text} dicts from worker channel.
+        patient_segments: list of {start, end, text} dicts from patient channel.
+        worker_name: display name for the worker.
+        patient_name: display name for the patient.
+
+    Returns:
+        list of {start, end, text, speaker} dicts sorted chronologically.
+    """
+    merged = []
+    for seg in worker_segments:
+        merged.append({
+            "start": seg["start"],
+            "end": seg["end"],
+            "text": seg["text"],
+            "speaker": worker_name,
+        })
+    for seg in patient_segments:
+        merged.append({
+            "start": seg["start"],
+            "end": seg["end"],
+            "text": seg["text"],
+            "speaker": patient_name,
+        })
+    merged.sort(key=lambda s: s["start"])
+    return merged

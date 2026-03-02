@@ -100,6 +100,7 @@ class Call(Base):
     call_direction = Column(String, nullable=True)  # outbound/inbound
     patient_phone = Column(String, nullable=True)
     connection_mode = Column(String, nullable=True)  # browser/phone
+    patient_name = Column(String, nullable=True)
 
     transcript = relationship("Transcript", back_populates="call", uselist=False, cascade="all, delete-orphan")
     tonality = relationship("TonalityResult", back_populates="call", uselist=False, cascade="all, delete-orphan")

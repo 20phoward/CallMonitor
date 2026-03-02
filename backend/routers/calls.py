@@ -100,6 +100,7 @@ def dial_call(
         call_direction="outbound",
         patient_phone=patient_phone,
         connection_mode=req.mode,
+        patient_name=req.patient_name,
     )
     db.add(call)
     db.commit()

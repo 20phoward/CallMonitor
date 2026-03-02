@@ -84,6 +84,7 @@ class DialRequest(BaseModel):
     mode: str = "browser"  # "browser" or "phone"
     worker_phone: Optional[str] = None  # Required when mode="phone"
     title: str = "Phone Call"
+    patient_name: Optional[str] = None
 
 
 class DialResponse(BaseModel):
@@ -277,8 +278,19 @@ class TeamStats(BaseModel):
     lowest_scorer: Optional[str] = None
 
 
+class WorkerStats(BaseModel):
+    worker_id: int
+    worker_name: str
+    call_count: int = 0
+    avg_sentiment: Optional[float] = None
+    avg_rating: Optional[float] = None
+    flagged_pct: float = 0.0
+    approved_pct: float = 0.0
+
+
 class TeamComparisonResponse(BaseModel):
     teams: list[TeamStats]
+    workers: Optional[list[WorkerStats]] = None
 
 
 class FailingWorker(BaseModel):

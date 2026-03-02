@@ -1,12 +1,13 @@
 import logging
 import subprocess
+import wave
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from config import STORAGE_DIR
-from database import Call, Transcript, TonalityResult, CallScore
-from services.transcription import transcribe_audio
+from database import Call, Transcript, TonalityResult, CallScore, User
+from services.transcription import transcribe_audio, merge_speaker_segments
 from services.tonality import analyze_tonality
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,52 @@ def convert_to_wav(input_path: Path) -> Path:
     return wav_path
 
 
+def _is_stereo(wav_path: Path) -> bool:
+    """Check if a WAV file has 2 channels (stereo)."""
+    with wave.open(str(wav_path), "rb") as wf:
+        return wf.getnchannels() == 2
+
+
+def split_stereo_channels(wav_path: Path) -> tuple[Path, Path]:
+    """Split a stereo WAV into two mono channel files.
+
+    Left channel (ch1) = worker, Right channel (ch2) = patient.
+    Returns (ch1_path, ch2_path).
+    """
+    stem = wav_path.stem
+    parent = wav_path.parent
+    ch1_path = parent / f"{stem}_ch1.wav"
+    ch2_path = parent / f"{stem}_ch2.wav"
+
+    logger.info("Splitting stereo %s → ch1 + ch2", wav_path.name)
+
+    # Extract left channel
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", str(wav_path),
+            "-af", "pan=mono|c0=FL",
+            "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le",
+            str(ch1_path),
+        ],
+        capture_output=True,
+        check=True,
+    )
+
+    # Extract right channel
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", str(wav_path),
+            "-af", "pan=mono|c0=FR",
+            "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le",
+            str(ch2_path),
+        ],
+        capture_output=True,
+        check=True,
+    )
+
+    return ch1_path, ch2_path
+
+
 def process_call(call_id: int, db: Session):
     """Full processing pipeline: transcode → transcribe → analyze → store."""
     call = db.query(Call).filter(Call.id == call_id).first()
@@ -49,9 +96,58 @@ def process_call(call_id: int, db: Session):
         # --- Transcode ---
         wav_path = convert_to_wav(audio_path)
 
-        # --- Transcribe ---
+        # --- Transcribe (dual-channel for Twilio stereo, mono otherwise) ---
         logger.info("Transcribing call %d", call_id)
-        tx_result = transcribe_audio(wav_path)
+
+        use_diarization = (
+            call.source_type == "twilio"
+            and wav_path.suffix.lower() == ".wav"
+            and _is_stereo(wav_path)
+        )
+
+        if use_diarization:
+            # Split stereo into per-speaker channels
+            ch1_path, ch2_path = split_stereo_channels(wav_path)
+            try:
+                worker_result = transcribe_audio(ch1_path)
+                patient_result = transcribe_audio(ch2_path)
+
+                # Look up speaker names
+                worker_name = "Worker"
+                if call.uploaded_by:
+                    uploader = db.query(User).filter(User.id == call.uploaded_by).first()
+                    if uploader and uploader.name:
+                        worker_name = uploader.name
+                patient_name = call.patient_name or "Patient"
+
+                # Merge segments with speaker labels
+                merged_segments = merge_speaker_segments(
+                    worker_result["segments"],
+                    patient_result["segments"],
+                    worker_name,
+                    patient_name,
+                )
+
+                # Build speaker-labeled full text
+                full_text = "\n".join(
+                    f"{seg['speaker']}: {seg['text']}" for seg in merged_segments
+                )
+                duration = max(worker_result["duration"], patient_result["duration"])
+
+                tx_result = {
+                    "full_text": full_text,
+                    "segments": merged_segments,
+                    "duration": duration,
+                }
+            finally:
+                # Clean up split channel files
+                for p in (ch1_path, ch2_path):
+                    try:
+                        p.unlink()
+                    except OSError:
+                        pass
+        else:
+            tx_result = transcribe_audio(wav_path)
 
         transcript = Transcript(
             call_id=call_id,
